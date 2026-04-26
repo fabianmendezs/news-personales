@@ -1,0 +1,12 @@
+venv/
+.venv/
+.env
+logs/
+*.log
+__pycache__/
+*.py[cod]
+news_history.html
+.vscode/
+*.code-workspace
+.DS_Store
+Thumbs.db
