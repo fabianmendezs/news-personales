@@ -16,6 +16,7 @@ load_dotenv()
 
 BASE_DIR       = Path(__file__).parent
 INTERESTS_FILE = BASE_DIR / "interests.json"
+DAX_FILE       = BASE_DIR / "dax_formulas.json"
 HISTORY_FILE   = BASE_DIR / "news_history.html"
 LOGS_DIR       = BASE_DIR / "logs"
 MAX_ITEMS      = int(os.getenv("MAX_ITEMS", 5))
@@ -62,11 +63,34 @@ def fetch_interest(feeds: list, max_items: int) -> list:
         if it["link"] not in seen:
             seen.add(it["link"])
             unique.append(it)
-    return unique[:max_items * len(feeds)]
+    return unique[:max_items]
+
+# ─── DAX ──────────────────────────────────────────────────────────────────────
+
+def get_dax_formula() -> dict:
+    with open(DAX_FILE, encoding="utf-8") as f:
+        formulas = json.load(f)
+    idx = date.today().timetuple().tm_yday % len(formulas)
+    return formulas[idx]
+
+def render_dax_block(dax: dict) -> str:
+    ejemplo_html = dax["ejemplo"].replace("\n", "<br>")
+    return (
+        f'<hr style="border:none;border-top:1px solid #e2e8f0;margin:18px 0 14px">'
+        f'<p style="font-weight:bold;margin:0 0 8px;color:#0f172a">💡 DAX del día — <code style="font-size:13px">{dax["nombre"]}</code></p>'
+        f'<code style="display:block;background:#f1f5f9;padding:10px 12px;border-radius:6px;'
+        f'font-size:12px;font-family:Consolas,monospace;color:#1e293b;white-space:pre-wrap">'
+        f'{dax["formula"]}</code>'
+        f'<p style="margin:10px 0 2px;font-size:12px;color:#475569"><strong>Ejemplo:</strong></p>'
+        f'<code style="display:block;background:#f8fafc;padding:8px 12px;border-radius:6px;'
+        f'font-size:11px;font-family:Consolas,monospace;color:#334155;white-space:pre-wrap">'
+        f'{ejemplo_html}</code>'
+        f'<p style="margin:8px 0 0;font-size:12px;color:#64748b">{dax["descripcion"]}</p>'
+    )
 
 # ─── HTML ─────────────────────────────────────────────────────────────────────
 
-def render_section(fecha_str: str, noticias: dict, is_open: bool = False) -> str:
+def render_section(fecha_str: str, noticias: dict, is_open: bool = False, dax: dict = None) -> str:
     open_attr = " open" if is_open else ""
     body = ""
     for topic, items in noticias.items():
@@ -83,6 +107,8 @@ def render_section(fecha_str: str, noticias: dict, is_open: bool = False) -> str
             f'<p style="font-weight:bold;margin:14px 0 4px;color:#0f172a">{topic}</p>'
             f'<ul style="margin:0;padding-left:18px;line-height:1.9">{rows}</ul>'
         )
+    if dax:
+        body += render_dax_block(dax)
     return (
         f'<details{open_attr} style="background:#fff;border-radius:8px;padding:16px;'
         f'margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)">'
@@ -92,8 +118,8 @@ def render_section(fecha_str: str, noticias: dict, is_open: bool = False) -> str
         f'</details>'
     )
 
-def build_email(fecha_str: str, noticias: dict) -> str:
-    section = render_section(fecha_str, noticias, is_open=True)
+def build_email(fecha_str: str, noticias: dict, dax: dict) -> str:
+    section = render_section(fecha_str, noticias, is_open=True, dax=dax)
     return (
         '<!DOCTYPE html><html><head><meta charset="utf-8"></head>'
         '<body style="font-family:Segoe UI,Arial,sans-serif;background:#f1f5f9;padding:20px;margin:0">'
@@ -123,7 +149,7 @@ HISTORY_SHELL = (
     '</div></body></html>'
 )
 
-def update_history(fecha_str: str, noticias: dict) -> None:
+def update_history(fecha_str: str, noticias: dict, dax: dict) -> None:
     LOGS_DIR.mkdir(exist_ok=True)
     if not HISTORY_FILE.exists():
         HISTORY_FILE.write_text(HISTORY_SHELL, encoding="utf-8")
@@ -132,7 +158,7 @@ def update_history(fecha_str: str, noticias: dict) -> None:
     if f"📅 {fecha_str}" in html:
         return  # ya guardado hoy
 
-    section = render_section(fecha_str, noticias)
+    section = render_section(fecha_str, noticias, dax=dax)
     HISTORY_FILE.write_text(
         html.replace(MARKER, section + "\n" + MARKER, 1),
         encoding="utf-8"
@@ -170,8 +196,11 @@ def main():
         noticias[topic] = items
         print(f"  {topic}: {len(items)} noticias")
 
-    update_history(fecha_str, noticias)
-    send_email(build_email(fecha_str, noticias), fecha_str)
+    dax = get_dax_formula()
+    print(f"  DAX del día: {dax['nombre']}")
+
+    update_history(fecha_str, noticias, dax)
+    send_email(build_email(fecha_str, noticias, dax), fecha_str)
 
     total = sum(len(v) for v in noticias.values())
     print(f"\n  ✓ {total} noticias enviadas a {DESTINATARIO}")

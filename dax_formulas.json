@@ -1,0 +1,182 @@
+[
+  {
+    "nombre": "CALCULATE",
+    "formula": "CALCULATE(<expresión>, <filtro1>, <filtro2>)",
+    "ejemplo": "Ventas_USA = CALCULATE(SUM(Ventas[Monto]), Clientes[País] = \"USA\")",
+    "descripcion": "La función más poderosa de DAX. Evalúa una expresión modificando el contexto de filtro activo. Casi toda medida compleja la usa."
+  },
+  {
+    "nombre": "SUMX",
+    "formula": "SUMX(<tabla>, <expresión>)",
+    "ejemplo": "Total = SUMX(Ventas, Ventas[Cantidad] * Ventas[PrecioUnit])",
+    "descripcion": "Itera fila por fila en una tabla y acumula el resultado. Ideal cuando el cálculo necesita operar columna a columna antes de sumar."
+  },
+  {
+    "nombre": "FILTER",
+    "formula": "FILTER(<tabla>, <condición>)",
+    "ejemplo": "CALCULATE(SUM(Ventas[Monto]), FILTER(Ventas, Ventas[Monto] > 1000))",
+    "descripcion": "Devuelve una tabla filtrada. Se usa dentro de CALCULATE u otras funciones iteradoras para aplicar condiciones complejas."
+  },
+  {
+    "nombre": "ALL",
+    "formula": "ALL(<tabla o columna>)",
+    "ejemplo": "% Total = DIVIDE(SUM(Ventas[Monto]), CALCULATE(SUM(Ventas[Monto]), ALL(Ventas)))",
+    "descripcion": "Elimina todos los filtros de una tabla o columna. Clave para calcular porcentajes sobre el total global."
+  },
+  {
+    "nombre": "ALLEXCEPT",
+    "formula": "ALLEXCEPT(<tabla>, <columna1>, <columna2>)",
+    "ejemplo": "CALCULATE(SUM(Ventas[Monto]), ALLEXCEPT(Ventas, Ventas[Vendedor]))",
+    "descripcion": "Elimina todos los filtros de la tabla excepto los de las columnas indicadas. Útil para mantener un contexto parcial."
+  },
+  {
+    "nombre": "RELATED",
+    "formula": "RELATED(<columna>)",
+    "ejemplo": "Categoría = RELATED(Productos[Categoría])",
+    "descripcion": "Trae un valor de una tabla relacionada (lado 1 de la relación). Solo funciona en columnas calculadas, no en medidas."
+  },
+  {
+    "nombre": "RELATEDTABLE",
+    "formula": "RELATEDTABLE(<tabla>)",
+    "ejemplo": "CantPedidos = COUNTROWS(RELATEDTABLE(Pedidos))",
+    "descripcion": "Devuelve la tabla relacionada filtrada por el contexto actual (lado muchos). Útil en columnas calculadas para contar filas relacionadas."
+  },
+  {
+    "nombre": "RANKX",
+    "formula": "RANKX(<tabla>, <expresión>, [valor], [orden], [empates])",
+    "ejemplo": "Ranking = RANKX(ALL(Productos), [TotalVentas],,DESC)",
+    "descripcion": "Asigna un número de ranking a cada fila según una expresión. Muy usado en tablas de Top N y rankings de vendedores."
+  },
+  {
+    "nombre": "TOPN",
+    "formula": "TOPN(<n>, <tabla>, <expresión>, [orden])",
+    "ejemplo": "Top5 = CALCULATE(SUM(Ventas[Monto]), TOPN(5, Clientes, [TotalVentas], DESC))",
+    "descripcion": "Devuelve las N filas superiores de una tabla según una expresión. Ideal para análisis de los mejores clientes o productos."
+  },
+  {
+    "nombre": "DIVIDE",
+    "formula": "DIVIDE(<numerador>, <denominador>, [resultado_si_cero])",
+    "ejemplo": "Margen = DIVIDE([Utilidad], [Ingresos], 0)",
+    "descripcion": "División segura: evita el error de división por cero devolviendo un valor alternativo. Siempre preferirla sobre el operador /."
+  },
+  {
+    "nombre": "SWITCH",
+    "formula": "SWITCH(<expresión>, <valor1>, <resultado1>, ..., [default])",
+    "ejemplo": "Tramo = SWITCH(TRUE(), [Monto]>10000, \"Alto\", [Monto]>5000, \"Medio\", \"Bajo\")",
+    "descripcion": "Equivalente a un CASE/IF encadenado. Usando SWITCH(TRUE(), ...) permite evaluar condiciones independientes de forma limpia."
+  },
+  {
+    "nombre": "SELECTEDVALUE",
+    "formula": "SELECTEDVALUE(<columna>, [valor_si_varios])",
+    "ejemplo": "Año selec. = SELECTEDVALUE(Calendario[Año], \"Varios\")",
+    "descripcion": "Devuelve el valor único seleccionado en un filtro. Si hay varios o ninguno, devuelve el valor alternativo. Ideal para títulos dinámicos."
+  },
+  {
+    "nombre": "HASONEVALUE",
+    "formula": "HASONEVALUE(<columna>)",
+    "ejemplo": "IF(HASONEVALUE(Calendario[Año]), SELECTEDVALUE(Calendario[Año]), BLANK())",
+    "descripcion": "Devuelve TRUE si la columna tiene exactamente un valor en el contexto actual. Útil para condicionar medidas según el nivel de filtro."
+  },
+  {
+    "nombre": "COALESCE",
+    "formula": "COALESCE(<expresión1>, <expresión2>, ...)",
+    "ejemplo": "Nombre = COALESCE(Clientes[NombreCompleto], Clientes[Alias], \"Sin nombre\")",
+    "descripcion": "Devuelve el primer valor no BLANK de la lista. Alternativa más limpia a IF(ISBLANK(...), ...) encadenados."
+  },
+  {
+    "nombre": "DATEADD",
+    "formula": "DATEADD(<fechas>, <número>, <intervalo>)",
+    "ejemplo": "Ventas MesAnt = CALCULATE([TotalVentas], DATEADD(Calendario[Fecha], -1, MONTH))",
+    "descripcion": "Desplaza un conjunto de fechas en el tiempo. Permite comparar el período actual con períodos anteriores o futuros."
+  },
+  {
+    "nombre": "DATESYTD",
+    "formula": "DATESYTD(<fechas>, [fin_de_año])",
+    "ejemplo": "Ventas YTD = CALCULATE([TotalVentas], DATESYTD(Calendario[Fecha]))",
+    "descripcion": "Devuelve las fechas desde el inicio del año hasta la fecha actual. Fundamental para acumulados año a la fecha (YTD)."
+  },
+  {
+    "nombre": "SAMEPERIODLASTYEAR",
+    "formula": "SAMEPERIODLASTYEAR(<fechas>)",
+    "ejemplo": "Ventas AA = CALCULATE([TotalVentas], SAMEPERIODLASTYEAR(Calendario[Fecha]))",
+    "descripcion": "Devuelve el mismo período del año anterior. La función más directa para comparaciones año contra año (YoY)."
+  },
+  {
+    "nombre": "TOTALYTD",
+    "formula": "TOTALYTD(<expresión>, <fechas>, [filtro], [fin_de_año])",
+    "ejemplo": "Acum. Año = TOTALYTD(SUM(Ventas[Monto]), Calendario[Fecha])",
+    "descripcion": "Atajo para calcular acumulados YTD. Equivale a CALCULATE(..., DATESYTD(...)) pero en una sola función."
+  },
+  {
+    "nombre": "PARALLELPERIOD",
+    "formula": "PARALLELPERIOD(<fechas>, <número>, <intervalo>)",
+    "ejemplo": "Ventas Q ant. = CALCULATE([TotalVentas], PARALLELPERIOD(Calendario[Fecha], -1, QUARTER))",
+    "descripcion": "Similar a DATEADD pero devuelve períodos completos (mes, trimestre, año). Ideal para comparar trimestres o años completos."
+  },
+  {
+    "nombre": "VALUES",
+    "formula": "VALUES(<tabla o columna>)",
+    "ejemplo": "Países = CONCATENATEX(VALUES(Clientes[País]), Clientes[País], \", \")",
+    "descripcion": "Devuelve los valores únicos de una columna respetando el contexto de filtro, incluyendo la fila BLANK si existe relación rota."
+  },
+  {
+    "nombre": "DISTINCT",
+    "formula": "DISTINCT(<columna>)",
+    "ejemplo": "ClientesUnicos = COUNTROWS(DISTINCT(Ventas[IDCliente]))",
+    "descripcion": "Similar a VALUES pero excluye la fila BLANK. Preferida para conteos de elementos únicos cuando los blanks no son relevantes."
+  },
+  {
+    "nombre": "COUNTROWS",
+    "formula": "COUNTROWS(<tabla>)",
+    "ejemplo": "NroPedidos = COUNTROWS(Pedidos)",
+    "descripcion": "Cuenta las filas de una tabla. Más eficiente que COUNT o COUNTA para contar registros, especialmente dentro de CALCULATE."
+  },
+  {
+    "nombre": "AVERAGEX",
+    "formula": "AVERAGEX(<tabla>, <expresión>)",
+    "ejemplo": "TicketProm = AVERAGEX(Ventas, Ventas[Cantidad] * Ventas[PrecioUnit])",
+    "descripcion": "Calcula el promedio iterando fila por fila. Útil cuando el promedio debe calcularse sobre una expresión, no una columna directa."
+  },
+  {
+    "nombre": "MAXX / MINX",
+    "formula": "MAXX(<tabla>, <expresión>)",
+    "ejemplo": "VentaMax = MAXX(Ventas, Ventas[Cantidad] * Ventas[PrecioUnit])",
+    "descripcion": "Itera una tabla y devuelve el valor máximo (o mínimo con MINX) de la expresión. Útil para el mayor ticket o la venta mínima calculada."
+  },
+  {
+    "nombre": "CONCATENATEX",
+    "formula": "CONCATENATEX(<tabla>, <expresión>, [delimitador], [ordenar_por], [orden])",
+    "ejemplo": "Productos = CONCATENATEX(VALUES(Ventas[Producto]), Ventas[Producto], \", \")",
+    "descripcion": "Une los valores de una expresión iterando una tabla. Permite construir listas de texto dinámicas dentro de una medida."
+  },
+  {
+    "nombre": "LOOKUPVALUE",
+    "formula": "LOOKUPVALUE(<resultado>, <buscar_col>, <buscar_val>, ...)",
+    "ejemplo": "Precio = LOOKUPVALUE(Precios[Valor], Precios[Código], Productos[Código])",
+    "descripcion": "Busca un valor en una tabla sin necesidad de una relación formal. El equivalente al BUSCARV de Excel en DAX."
+  },
+  {
+    "nombre": "VAR ... RETURN",
+    "formula": "VAR <nombre> = <expresión>\nRETURN <uso_de_var>",
+    "ejemplo": "Margen = VAR Venta = SUM(Ventas[Monto])\n         VAR Costo = SUM(Costos[Monto])\n         RETURN DIVIDE(Venta - Costo, Venta)",
+    "descripcion": "Guarda resultados intermedios en variables. Hace las medidas más legibles, evita recalcular expresiones y facilita el debug."
+  },
+  {
+    "nombre": "USERELATIONSHIP",
+    "formula": "USERELATIONSHIP(<col1>, <col2>)",
+    "ejemplo": "Ventas x FechaEnvío = CALCULATE([TotalVentas], USERELATIONSHIP(Ventas[FechaEnvío], Calendario[Fecha]))",
+    "descripcion": "Activa una relación inactiva temporalmente dentro de CALCULATE. Esencial cuando el modelo tiene múltiples relaciones entre tablas."
+  },
+  {
+    "nombre": "EARLIER",
+    "formula": "EARLIER(<columna>, [número])",
+    "ejemplo": "RankVentas = COUNTROWS(FILTER(Ventas, Ventas[Monto] > EARLIER(Ventas[Monto]))) + 1",
+    "descripcion": "Accede al valor de la columna en un contexto de fila externo. Usado en columnas calculadas con iteraciones anidadas; VAR suele ser preferible."
+  },
+  {
+    "nombre": "KEEPFILTERS",
+    "formula": "KEEPFILTERS(<expresión de filtro>)",
+    "ejemplo": "CALCULATE([TotalVentas], KEEPFILTERS(Productos[Categoría] = \"Electrónica\"))",
+    "descripcion": "Aplica un filtro adicional sin reemplazar el filtro existente en la misma columna. Combina el filtro del visual con el de la medida."
+  }
+]
