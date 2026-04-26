@@ -1,0 +1,182 @@
+[
+  {
+    "nombre": "List comprehension",
+    "formula": "[expresión for item in iterable if condición]",
+    "ejemplo": "pares = [x**2 for x in range(20) if x % 2 == 0]",
+    "descripcion": "Crea listas en una sola línea. Más rápido y legible que un for + append. La condición al final es opcional."
+  },
+  {
+    "nombre": "Dict comprehension",
+    "formula": "{clave: valor for item in iterable if condición}",
+    "ejemplo": "cuadrados = {x: x**2 for x in range(1, 6)}\n# {1:1, 2:4, 3:9, 4:16, 5:25}",
+    "descripcion": "Construye diccionarios de forma concisa. Ideal para transformar listas en mapas clave-valor."
+  },
+  {
+    "nombre": "enumerate()",
+    "formula": "for índice, valor in enumerate(iterable, start=0):",
+    "ejemplo": "frutas = ['manzana', 'pera', 'uva']\nfor i, f in enumerate(frutas, 1):\n    print(i, f)",
+    "descripcion": "Evita usar range(len(...)). Devuelve índice y valor simultáneamente. El parámetro start define el valor inicial del índice."
+  },
+  {
+    "nombre": "zip()",
+    "formula": "for a, b in zip(lista1, lista2):",
+    "ejemplo": "nombres = ['Ana', 'Luis']\nnotas  = [90, 85]\nfor n, nota in zip(nombres, notas):\n    print(f'{n}: {nota}')",
+    "descripcion": "Itera dos o más iterables en paralelo. Se detiene en el más corto. Usa zip_longest de itertools si necesitas el más largo."
+  },
+  {
+    "nombre": "Walrus operator :=",
+    "formula": "variable := expresión",
+    "ejemplo": "import re\nif m := re.search(r'\\d+', texto):\n    print('Número encontrado:', m.group())",
+    "descripcion": "Asigna y evalúa en la misma expresión (Python 3.8+). Evita calcular un valor dos veces en condiciones o while loops."
+  },
+  {
+    "nombre": "f-strings avanzados",
+    "formula": "f'{valor:formato}' / f'{valor!r}' / f'{valor = }'",
+    "ejemplo": "pi = 3.14159\nprint(f'{pi:.2f}')      # 3.14\nprint(f'{pi = }')       # pi = 3.14159\nprint(f'{\"hola\"!r}')   # 'hola'",
+    "descripcion": "Los f-strings admiten formato numérico, repr (!r), str (!s) y el modo debug (variable = ) que muestra nombre y valor (Python 3.8+)."
+  },
+  {
+    "nombre": "collections.Counter",
+    "formula": "from collections import Counter\nCounter(iterable)",
+    "ejemplo": "from collections import Counter\ntexto = 'abracadabra'\nc = Counter(texto)\nprint(c.most_common(3))  # [('a',5),('b',2),('r',2)]",
+    "descripcion": "Cuenta elementos de cualquier iterable. Soporta operaciones aritméticas entre contadores y el método most_common(n)."
+  },
+  {
+    "nombre": "collections.defaultdict",
+    "formula": "from collections import defaultdict\nd = defaultdict(tipo_default)",
+    "ejemplo": "from collections import defaultdict\ngrupos = defaultdict(list)\nfor nombre, grupo in datos:\n    grupos[grupo].append(nombre)",
+    "descripcion": "Como un dict normal pero genera un valor por defecto automático si la clave no existe. Elimina los KeyError al agrupar datos."
+  },
+  {
+    "nombre": "functools.lru_cache",
+    "formula": "@functools.lru_cache(maxsize=None)",
+    "ejemplo": "from functools import lru_cache\n@lru_cache(maxsize=128)\ndef fibonacci(n):\n    return n if n < 2 else fibonacci(n-1) + fibonacci(n-2)",
+    "descripcion": "Memoriza el resultado de funciones puras. Transforma funciones recursivas lentas en rápidas sin cambiar su lógica."
+  },
+  {
+    "nombre": "sorted() con key",
+    "formula": "sorted(iterable, key=función, reverse=False)",
+    "ejemplo": "datos = [('Ana',90), ('Luis',85), ('Eva',95)]\npor_nota = sorted(datos, key=lambda x: x[1], reverse=True)",
+    "descripcion": "Ordena cualquier iterable usando una función de clave. Prefiere operator.itemgetter o attrgetter sobre lambda para mejor rendimiento."
+  },
+  {
+    "nombre": "any() / all()",
+    "formula": "any(condición for x in iterable)\nall(condición for x in iterable)",
+    "ejemplo": "nums = [2, 4, 6, 7, 8]\nprint(all(x % 2 == 0 for x in nums))  # False\nprint(any(x > 5 for x in nums))       # True",
+    "descripcion": "Evalúan condiciones sobre iterables con cortocircuito: any() para en el primer True, all() para en el primer False."
+  },
+  {
+    "nombre": "Unpacking extendido *",
+    "formula": "primero, *resto = iterable\n*inicio, último = iterable",
+    "ejemplo": "a, *b, c = [1, 2, 3, 4, 5]\nprint(a)  # 1\nprint(b)  # [2, 3, 4]\nprint(c)  # 5",
+    "descripcion": "Permite desempaquetar iterables de tamaño variable. El asterisco captura el \"resto\" como lista. Útil para head/tail patterns."
+  },
+  {
+    "nombre": "Generator expression",
+    "formula": "(expresión for item in iterable if condición)",
+    "ejemplo": "total = sum(x**2 for x in range(1_000_000))\n# No crea la lista completa en memoria",
+    "descripcion": "Como un list comprehension pero lazy: calcula los valores uno a uno. Ideal para procesar grandes volúmenes de datos sin agotar la RAM."
+  },
+  {
+    "nombre": "pathlib.Path",
+    "formula": "from pathlib import Path\nPath('ruta') / 'subdirectorio' / 'archivo.txt'",
+    "ejemplo": "from pathlib import Path\nbase = Path(__file__).parent\narchivo = base / 'datos' / 'ventas.csv'\ncontenido = archivo.read_text(encoding='utf-8')",
+    "descripcion": "Manejo de rutas orientado a objetos. Reemplaza os.path. Permite construir rutas con / y tiene métodos como .read_text(), .exists(), .glob()."
+  },
+  {
+    "nombre": "Context manager (with)",
+    "formula": "with open(archivo, modo, encoding='utf-8') as f:",
+    "ejemplo": "with open('datos.txt', 'r', encoding='utf-8') as f:\n    contenido = f.read()\n# El archivo se cierra automáticamente al salir",
+    "descripcion": "Garantiza la liberación de recursos aunque ocurra una excepción. Funciona con archivos, conexiones de BD, locks, y cualquier clase con __enter__/__exit__."
+  },
+  {
+    "nombre": "@dataclass",
+    "formula": "from dataclasses import dataclass, field\n@dataclass\nclass MiClase:",
+    "ejemplo": "from dataclasses import dataclass\n@dataclass\nclass Producto:\n    nombre: str\n    precio: float\n    stock: int = 0\n\np = Producto('Laptop', 999.99)\nprint(p)  # Producto(nombre='Laptop', precio=999.99, stock=0)",
+    "descripcion": "Genera automáticamente __init__, __repr__ y __eq__. Con frozen=True crea objetos inmutables. Elimina código boilerplate en clases de datos."
+  },
+  {
+    "nombre": "itertools.chain()",
+    "formula": "from itertools import chain\nchain(iter1, iter2, ...)",
+    "ejemplo": "from itertools import chain\nlistas = [[1,2], [3,4], [5,6]]\naplanada = list(chain.from_iterable(listas))\n# [1, 2, 3, 4, 5, 6]",
+    "descripcion": "Encadena múltiples iterables en uno solo sin crear listas intermedias. chain.from_iterable() aplana un iterable de iterables."
+  },
+  {
+    "nombre": "itertools.groupby()",
+    "formula": "from itertools import groupby\ngroupby(iterable, key=función)",
+    "ejemplo": "from itertools import groupby\ndatos = sorted([('A',1),('B',2),('A',3)], key=lambda x: x[0])\nfor k, g in groupby(datos, key=lambda x: x[0]):\n    print(k, list(g))",
+    "descripcion": "Agrupa elementos consecutivos por clave. IMPORTANTE: el iterable debe estar ordenado por la misma clave antes de agrupar."
+  },
+  {
+    "nombre": "map() / filter()",
+    "formula": "map(función, iterable)\nfilter(función, iterable)",
+    "ejemplo": "nums = [1, 2, 3, 4, 5]\ncuadrados = list(map(lambda x: x**2, nums))\npares     = list(filter(lambda x: x % 2 == 0, nums))",
+    "descripcion": "map() transforma cada elemento, filter() selecciona los que cumplen la condición. Ambos son lazy — en la práctica los list comprehensions suelen ser más legibles."
+  },
+  {
+    "nombre": "*args / **kwargs",
+    "formula": "def f(*args, **kwargs):\ndef f(a, b, *args, clave=val, **kwargs):",
+    "ejemplo": "def resumen(*nums, prefijo='Total'):\n    return f'{prefijo}: {sum(nums)}'\n\nprint(resumen(1, 2, 3, prefijo='Suma'))  # Suma: 6",
+    "descripcion": "*args captura posicionales extras como tuple. **kwargs captura nombrados extras como dict. Permiten funciones flexibles sin definir cada parámetro."
+  },
+  {
+    "nombre": "property decorator",
+    "formula": "@property\ndef atributo(self): ...\n@atributo.setter\ndef atributo(self, valor): ...",
+    "ejemplo": "class Temperatura:\n    def __init__(self, celsius):\n        self._c = celsius\n    @property\n    def fahrenheit(self):\n        return self._c * 9/5 + 32\n\nt = Temperatura(100)\nprint(t.fahrenheit)  # 212.0",
+    "descripcion": "Convierte métodos en atributos calculados. Permite agregar lógica de validación en setters manteniendo la interfaz de acceso simple."
+  },
+  {
+    "nombre": "Exception chaining",
+    "formula": "raise NuevaExcepción('msg') from excepción_original",
+    "ejemplo": "try:\n    datos = int(input_usuario)\nexcept ValueError as e:\n    raise TypeError('Se esperaba un número entero') from e",
+    "descripcion": "Encadena excepciones preservando el traceback original. Use 'from None' para suprimir el contexto original cuando no es relevante."
+  },
+  {
+    "nombre": "match / case (Python 3.10+)",
+    "formula": "match variable:\n    case patrón1: ...\n    case patrón2: ...\n    case _: ...",
+    "ejemplo": "def clasificar(figura):\n    match figura:\n        case {'tipo': 'círculo', 'radio': r}:\n            return 3.14 * r**2\n        case {'tipo': 'cuadrado', 'lado': l}:\n            return l**2\n        case _:\n            return 0",
+    "descripcion": "Pattern matching estructural. Más potente que un if/elif: puede hacer destructuring de dicts, listas y dataclasses en los patrones."
+  },
+  {
+    "nombre": "collections.namedtuple",
+    "formula": "from collections import namedtuple\nTipo = namedtuple('Tipo', ['campo1', 'campo2'])",
+    "ejemplo": "from collections import namedtuple\nPunto = namedtuple('Punto', ['x', 'y'])\np = Punto(3, 4)\nprint(p.x, p.y)      # 3 4\nprint(p._asdict())   # {'x':3, 'y':4}",
+    "descripcion": "Tupla con campos nombrados. Inmutable, ligera y con acceso por nombre. Ideal como alternativa simple a dataclass cuando no se necesitan métodos."
+  },
+  {
+    "nombre": "dict.get() y dict.setdefault()",
+    "formula": "d.get(clave, valor_default)\nd.setdefault(clave, valor_default)",
+    "ejemplo": "config = {'host': 'localhost'}\npuerto = config.get('port', 8080)          # 8080\nlista  = config.setdefault('tags', [])     # crea la clave si no existe",
+    "descripcion": "get() retorna un default sin lanzar KeyError. setdefault() además inserta el default en el dict si la clave no existía — útil para inicializar listas o dicts anidados."
+  },
+  {
+    "nombre": "Operador de desempaquetado **dict",
+    "formula": "{**dict1, **dict2, clave: valor}",
+    "ejemplo": "base   = {'host': 'localhost', 'port': 5432}\nextra  = {'db': 'ventas'}\ncombinado = {**base, **extra, 'timeout': 30}\n# {'host':'localhost','port':5432,'db':'ventas','timeout':30}",
+    "descripcion": "Fusiona diccionarios en una sola expresión (Python 3.9+ también admite d1 | d2). Las claves duplicadas se resuelven de izquierda a derecha."
+  },
+  {
+    "nombre": "typing — Type hints",
+    "formula": "def f(param: Tipo) -> RetornoTipo:",
+    "ejemplo": "from typing import Optional\ndef buscar(nombre: str, activo: bool = True) -> Optional[dict]:\n    ...",
+    "descripcion": "Anotaciones de tipo que mejoran la legibilidad y permiten análisis estático con mypy. No afectan la ejecución. Desde Python 3.10+ usa int | None en vez de Optional[int]."
+  },
+  {
+    "nombre": "operator.itemgetter / attrgetter",
+    "formula": "from operator import itemgetter, attrgetter",
+    "ejemplo": "from operator import itemgetter\ndatos = [{'nombre':'Ana','nota':90}, {'nombre':'Luis','nota':85}]\nordena = sorted(datos, key=itemgetter('nota'), reverse=True)",
+    "descripcion": "Alternativa más rápida a lambda para extraer claves o atributos. itemgetter funciona con dicts y tuplas; attrgetter con objetos. Más eficiente que lambda en ordenamientos masivos."
+  },
+  {
+    "nombre": "__slots__",
+    "formula": "class MiClase:\n    __slots__ = ('attr1', 'attr2')",
+    "ejemplo": "class Punto:\n    __slots__ = ('x', 'y')\n    def __init__(self, x, y):\n        self.x = x\n        self.y = y\n# Reduce uso de memoria hasta 50% en clases con muchas instancias",
+    "descripcion": "Reemplaza el __dict__ de instancia por un array fijo. Reduce consumo de memoria y acelera el acceso a atributos. Impide agregar atributos no declarados."
+  },
+  {
+    "nombre": "zip() para transponer matrices",
+    "formula": "transpuesta = list(zip(*matriz))",
+    "ejemplo": "matriz = [[1,2,3],[4,5,6],[7,8,9]]\ntranspuesta = list(zip(*matriz))\n# [(1,4,7), (2,5,8), (3,6,9)]",
+    "descripcion": "El operador * desempaqueta la lista de listas y zip las entrelaza columna a columna. Truco clásico para transponer sin NumPy en matrices pequeñas."
+  }
+]

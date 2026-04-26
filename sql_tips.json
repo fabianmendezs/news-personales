@@ -1,0 +1,188 @@
+[
+  {
+    "nombre": "ROW_NUMBER()",
+    "formula": "ROW_NUMBER() OVER (PARTITION BY col ORDER BY col)",
+    "ejemplo": "SELECT nombre, ventas,\n  ROW_NUMBER() OVER (PARTITION BY region ORDER BY ventas DESC) AS ranking\nFROM vendedores;",
+    "descripcion": "Asigna un número único y consecutivo por fila dentro de cada partición. A diferencia de RANK, no deja huecos ante empates. Ideal para obtener el top 1 por grupo."
+  },
+  {
+    "nombre": "RANK() / DENSE_RANK()",
+    "formula": "RANK() OVER (ORDER BY col DESC)\nDENSE_RANK() OVER (ORDER BY col DESC)",
+    "ejemplo": "SELECT nombre, puntaje,\n  RANK()       OVER (ORDER BY puntaje DESC) AS rank_con_huecos,\n  DENSE_RANK() OVER (ORDER BY puntaje DESC) AS rank_continuo\nFROM jugadores;",
+    "descripcion": "RANK() deja huecos ante empates (1,1,3). DENSE_RANK() no los deja (1,1,2). Elige según si los huecos tienen sentido en tu contexto de negocio."
+  },
+  {
+    "nombre": "LAG() / LEAD()",
+    "formula": "LAG(col, n, default) OVER (PARTITION BY ... ORDER BY ...)\nLEAD(col, n, default) OVER (PARTITION BY ... ORDER BY ...)",
+    "ejemplo": "SELECT fecha, ventas,\n  LAG(ventas, 1, 0) OVER (ORDER BY fecha) AS ventas_dia_anterior,\n  ventas - LAG(ventas, 1, 0) OVER (ORDER BY fecha) AS variacion\nFROM diario;",
+    "descripcion": "LAG accede a filas anteriores; LEAD a filas siguientes. El segundo parámetro es el desplazamiento (default 1) y el tercero el valor cuando no hay fila."
+  },
+  {
+    "nombre": "CTE — WITH",
+    "formula": "WITH nombre_cte AS (\n  SELECT ...\n)\nSELECT * FROM nombre_cte;",
+    "ejemplo": "WITH ventas_region AS (\n  SELECT region, SUM(monto) AS total\n  FROM ventas GROUP BY region\n)\nSELECT * FROM ventas_region\nWHERE total > 100000;",
+    "descripcion": "Common Table Expression: define una subconsulta nombrada que se usa como tabla temporal. Mejora la legibilidad y permite reutilizar la lógica en la misma query."
+  },
+  {
+    "nombre": "CTE Recursiva",
+    "formula": "WITH RECURSIVE cte AS (\n  -- ancla\n  UNION ALL\n  -- parte recursiva\n)\nSELECT * FROM cte;",
+    "ejemplo": "WITH RECURSIVE nums AS (\n  SELECT 1 AS n\n  UNION ALL\n  SELECT n + 1 FROM nums WHERE n < 10\n)\nSELECT * FROM nums;",
+    "descripcion": "Permite recorrer estructuras jerárquicas (árboles, organigramas) o generar series. La parte ancla define el punto de inicio; la recursiva se repite hasta que no hay más filas."
+  },
+  {
+    "nombre": "CASE WHEN",
+    "formula": "CASE\n  WHEN condición1 THEN resultado1\n  WHEN condición2 THEN resultado2\n  ELSE resultado_default\nEND",
+    "ejemplo": "SELECT nombre, monto,\n  CASE\n    WHEN monto > 10000 THEN 'Alto'\n    WHEN monto > 5000  THEN 'Medio'\n    ELSE 'Bajo'\n  END AS tramo\nFROM ventas;",
+    "descripcion": "Lógica condicional dentro de SELECT, WHERE, ORDER BY, GROUP BY y funciones de agregación. Equivale al SWITCH de DAX o al if/elif de Python."
+  },
+  {
+    "nombre": "COALESCE",
+    "formula": "COALESCE(expr1, expr2, ..., exprN)",
+    "ejemplo": "SELECT nombre,\n  COALESCE(telefono_movil, telefono_fijo, 'Sin teléfono') AS contacto\nFROM clientes;",
+    "descripcion": "Retorna el primer valor no NULL de la lista. La alternativa más portátil a ISNULL (SQL Server) o NVL (Oracle). Fundamental para manejar NULLs en reportes."
+  },
+  {
+    "nombre": "NULLIF",
+    "formula": "NULLIF(expresión1, expresión2)",
+    "ejemplo": "-- Evita división por cero\nSELECT ventas / NULLIF(visitas, 0) AS tasa_conversion\nFROM campanas;",
+    "descripcion": "Retorna NULL si ambas expresiones son iguales; de lo contrario retorna la primera. Patrón clásico para evitar errores de división por cero."
+  },
+  {
+    "nombre": "STRING_AGG",
+    "formula": "STRING_AGG(columna, separador) WITHIN GROUP (ORDER BY col)",
+    "ejemplo": "SELECT region,\n  STRING_AGG(vendedor, ', ') WITHIN GROUP (ORDER BY vendedor) AS equipo\nFROM vendedores\nGROUP BY region;",
+    "descripcion": "Concatena valores de una columna en un string delimitado por grupo. Disponible en SQL Server 2017+, PostgreSQL 9.0+. En MySQL usar GROUP_CONCAT."
+  },
+  {
+    "nombre": "EXISTS / NOT EXISTS",
+    "formula": "WHERE EXISTS (SELECT 1 FROM tabla WHERE condición)\nWHERE NOT EXISTS (...)",
+    "ejemplo": "SELECT c.nombre\nFROM clientes c\nWHERE EXISTS (\n  SELECT 1 FROM pedidos p\n  WHERE p.id_cliente = c.id\n  AND p.fecha >= '2026-01-01'\n);",
+    "descripcion": "Más eficiente que IN con subqueries grandes: se detiene al encontrar la primera coincidencia. NOT EXISTS reemplaza al anti-join implícito de forma legible."
+  },
+  {
+    "nombre": "EXCEPT / INTERSECT",
+    "formula": "query1\nEXCEPT\nquery2\n---\nquery1\nINTERSECT\nquery2",
+    "ejemplo": "-- Clientes que compraron en 2025 pero NO en 2026\nSELECT id_cliente FROM ventas WHERE YEAR(fecha) = 2025\nEXCEPT\nSELECT id_cliente FROM ventas WHERE YEAR(fecha) = 2026;",
+    "descripcion": "EXCEPT devuelve filas del primer conjunto que no están en el segundo (diferencia). INTERSECT devuelve solo las filas comunes a ambos conjuntos."
+  },
+  {
+    "nombre": "PARTITION BY en agregados",
+    "formula": "función() OVER (PARTITION BY col ORDER BY col\n               ROWS BETWEEN ... AND ...)",
+    "ejemplo": "SELECT fecha, region, ventas,\n  SUM(ventas) OVER (PARTITION BY region ORDER BY fecha\n                   ROWS UNBOUNDED PRECEDING) AS acumulado\nFROM diario;",
+    "descripcion": "Calcula un agregado sobre una ventana deslizante sin colapsar las filas. ROWS/RANGE definen qué filas incluir: UNBOUNDED PRECEDING = desde el inicio."
+  },
+  {
+    "nombre": "FIRST_VALUE() / LAST_VALUE()",
+    "formula": "FIRST_VALUE(col) OVER (PARTITION BY ... ORDER BY ...)\nLAST_VALUE(col)  OVER (...  ROWS BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING)",
+    "ejemplo": "SELECT nombre, ventas,\n  FIRST_VALUE(nombre) OVER (PARTITION BY region ORDER BY ventas DESC) AS lider\nFROM vendedores;",
+    "descripcion": "FIRST_VALUE trae el valor de la primera fila de la ventana; LAST_VALUE de la última. Para LAST_VALUE hay que ampliar el frame explícitamente o devuelve la fila actual."
+  },
+  {
+    "nombre": "NTILE()",
+    "formula": "NTILE(n) OVER (ORDER BY col)",
+    "ejemplo": "SELECT cliente, total_compras,\n  NTILE(4) OVER (ORDER BY total_compras DESC) AS cuartil\nFROM resumen_clientes;",
+    "descripcion": "Divide las filas en N grupos del mismo tamaño (o lo más iguales posible). Muy usado para crear cuartiles, deciles o percentiles de forma rápida."
+  },
+  {
+    "nombre": "PERCENT_RANK() / CUME_DIST()",
+    "formula": "PERCENT_RANK() OVER (ORDER BY col)\nCUME_DIST()    OVER (ORDER BY col)",
+    "ejemplo": "SELECT nombre, ventas,\n  ROUND(PERCENT_RANK() OVER (ORDER BY ventas) * 100, 1) AS percentil\nFROM vendedores;",
+    "descripcion": "PERCENT_RANK devuelve el rango relativo de 0 a 1 (0 = menor). CUME_DIST devuelve la fracción de filas <= valor actual. Ambas útiles para análisis de distribución."
+  },
+  {
+    "nombre": "CROSS JOIN",
+    "formula": "FROM tabla1 CROSS JOIN tabla2",
+    "ejemplo": "-- Combinaciones de todos los productos con todas las regiones\nSELECT p.nombre, r.region\nFROM productos p\nCROSS JOIN regiones r;",
+    "descripcion": "Genera el producto cartesiano: cada fila de la primera tabla combinada con cada fila de la segunda. Útil para generar combinaciones completas o llenar huecos en series de tiempo."
+  },
+  {
+    "nombre": "DATE_TRUNC / DATETRUNC",
+    "formula": "DATE_TRUNC('parte', fecha)       -- PostgreSQL\nDATETRUNC('parte', fecha)        -- SQL Server 2022+",
+    "ejemplo": "-- Ventas mensuales\nSELECT DATE_TRUNC('month', fecha) AS mes,\n       SUM(monto) AS total\nFROM ventas\nGROUP BY 1\nORDER BY 1;",
+    "descripcion": "Trunca una fecha al inicio del período indicado (month, quarter, year, week, day). La forma más directa de agrupar por período sin convertir a string."
+  },
+  {
+    "nombre": "DATEDIFF / DATE_DIFF",
+    "formula": "DATEDIFF(parte, fecha_inicio, fecha_fin)   -- SQL Server\nDATE_DIFF(fecha_fin, fecha_inicio, parte)  -- BigQuery",
+    "ejemplo": "SELECT nombre,\n  DATEDIFF(day, fecha_registro, GETDATE()) AS dias_como_cliente\nFROM clientes;",
+    "descripcion": "Calcula la diferencia entre dos fechas en la unidad indicada (day, month, year, hour). La sintaxis varía por motor; verifica si el resultado es fecha_fin − fecha_inicio."
+  },
+  {
+    "nombre": "CAST / TRY_CAST",
+    "formula": "CAST(expresión AS tipo)\nTRY_CAST(expresión AS tipo)   -- SQL Server / Snowflake",
+    "ejemplo": "SELECT CAST('2026-04-26' AS DATE) AS fecha,\n       TRY_CAST(comentario AS INT)  AS numero_o_null\nFROM registros;",
+    "descripcion": "CAST convierte el tipo y lanza error si falla. TRY_CAST devuelve NULL en vez de error, ideal para datos sucios. En MySQL usar CONVERT(expr, tipo)."
+  },
+  {
+    "nombre": "PIVOT (SQL Server)",
+    "formula": "SELECT * FROM tabla\nPIVOT (\n  AGG(valor) FOR columna IN ([v1],[v2],[v3])\n) AS p;",
+    "ejemplo": "SELECT * FROM (\n  SELECT vendedor, mes, ventas FROM datos\n) src\nPIVOT (\n  SUM(ventas) FOR mes IN ([Ene],[Feb],[Mar])\n) AS pvt;",
+    "descripcion": "Transforma filas en columnas. Requiere conocer los valores de antemano. En PostgreSQL usar crosstab (tablefunc). En otros motores emular con CASE WHEN + GROUP BY."
+  },
+  {
+    "nombre": "UNPIVOT (SQL Server)",
+    "formula": "SELECT * FROM tabla\nUNPIVOT (\n  valor FOR columna IN (col1, col2, col3)\n) AS u;",
+    "ejemplo": "SELECT vendedor, mes, ventas\nFROM resumen\nUNPIVOT (\n  ventas FOR mes IN (Ene, Feb, Mar)\n) AS u;",
+    "descripcion": "Operación inversa al PIVOT: transforma columnas en filas. Útil para normalizar tablas anchas antes de análisis. En otros motores usar UNION ALL por columna."
+  },
+  {
+    "nombre": "MERGE (UPSERT)",
+    "formula": "MERGE INTO destino AS d\nUSING origen AS o ON condición\nWHEN MATCHED THEN UPDATE ...\nWHEN NOT MATCHED THEN INSERT ...;",
+    "ejemplo": "MERGE INTO clientes AS d\nUSING nuevos_clientes AS o ON d.id = o.id\nWHEN MATCHED THEN\n  UPDATE SET d.nombre = o.nombre\nWHEN NOT MATCHED THEN\n  INSERT (id, nombre) VALUES (o.id, o.nombre);",
+    "descripcion": "Combina INSERT y UPDATE en una sola operación atómica. Ideal para sincronizar tablas o cargar datos incrementales. Disponible en SQL Server, Oracle, DB2."
+  },
+  {
+    "nombre": "GENERATE_SERIES",
+    "formula": "GENERATE_SERIES(inicio, fin, paso)  -- PostgreSQL / BigQuery",
+    "ejemplo": "-- Calendario de fechas del mes\nSELECT fecha::date\nFROM GENERATE_SERIES('2026-04-01', '2026-04-30', INTERVAL '1 day') AS t(fecha);",
+    "descripcion": "Genera una serie de números o fechas. Fundamental para crear tablas de calendario dinámicas o rellenar huecos en series de tiempo. En SQL Server usar un CTE recursivo."
+  },
+  {
+    "nombre": "GROUP BY con ROLLUP",
+    "formula": "GROUP BY ROLLUP(col1, col2, ...)",
+    "ejemplo": "SELECT region, producto, SUM(ventas)\nFROM ventas\nGROUP BY ROLLUP(region, producto);\n-- Incluye subtotales por región y total general",
+    "descripcion": "Genera subtotales automáticos para cada nivel de agrupación, más un total general. CUBE genera todas las combinaciones posibles. GROUPING() identifica las filas de totales."
+  },
+  {
+    "nombre": "EXPLAIN / EXPLAIN ANALYZE",
+    "formula": "EXPLAIN SELECT ...;\nEXPLAIN ANALYZE SELECT ...;   -- PostgreSQL: ejecuta y mide",
+    "ejemplo": "EXPLAIN ANALYZE\nSELECT * FROM ventas v\nJOIN clientes c ON v.id_cliente = c.id\nWHERE v.fecha >= '2026-01-01';",
+    "descripcion": "Muestra el plan de ejecución de la query. Identifica table scans costosos, joins ineficientes y columnas que necesitan índice. El primer paso al optimizar una consulta lenta."
+  },
+  {
+    "nombre": "Índices — cuándo y para qué",
+    "formula": "CREATE INDEX idx_nombre ON tabla (columna);\nCREATE INDEX idx_comp  ON tabla (col1, col2);",
+    "ejemplo": "-- Índice compuesto: el orden importa\n-- (region, fecha) acelera filtros por region o region+fecha,\n-- pero NO filtros solo por fecha\nCREATE INDEX idx_ventas_reg_fecha ON ventas (region, fecha);",
+    "descripcion": "Un índice acelera SELECT a costa de INSERT/UPDATE/DELETE más lentos. Crear en columnas usadas en WHERE, JOIN ON y ORDER BY. El orden en índices compuestos es crucial."
+  },
+  {
+    "nombre": "JSON_VALUE / JSON_QUERY",
+    "formula": "JSON_VALUE(columna_json, '$.clave')\nJSON_QUERY(columna_json, '$.objeto')",
+    "ejemplo": "-- SQL Server\nSELECT JSON_VALUE(payload, '$.nombre') AS nombre,\n       JSON_VALUE(payload, '$.edad')   AS edad\nFROM eventos\nWHERE JSON_VALUE(payload, '$.tipo') = 'registro';",
+    "descripcion": "JSON_VALUE extrae un valor escalar del JSON. JSON_QUERY extrae un objeto o array. Permiten consultar columnas de tipo JSON/NVARCHAR con formato JSON sin deserializar en la app."
+  },
+  {
+    "nombre": "Subconsulta correlacionada",
+    "formula": "SELECT col FROM tabla_ext\nWHERE col operador (\n  SELECT AGG(col) FROM tabla_int\n  WHERE tabla_int.clave = tabla_ext.clave\n);",
+    "ejemplo": "-- Empleados que ganan más que el promedio de su departamento\nSELECT nombre, salario, depto\nFROM empleados e1\nWHERE salario > (\n  SELECT AVG(salario) FROM empleados e2\n  WHERE e2.depto = e1.depto\n);",
+    "descripcion": "Subconsulta que referencia la tabla externa. Se ejecuta una vez por fila — puede ser lenta en tablas grandes. Considera reemplazarla por JOIN con CTE cuando el rendimiento importa."
+  },
+  {
+    "nombre": "FULL OUTER JOIN",
+    "formula": "FROM tabla1\nFULL OUTER JOIN tabla2 ON condición",
+    "ejemplo": "SELECT COALESCE(a.mes, b.mes) AS mes,\n       a.ventas, b.objetivo\nFROM ventas_reales   a\nFULL OUTER JOIN objetivos b ON a.mes = b.mes;",
+    "descripcion": "Devuelve todas las filas de ambas tablas, con NULL donde no hay coincidencia. Útil para comparar dos conjuntos y encontrar lo que existe en uno pero no en el otro."
+  },
+  {
+    "nombre": "HAVING vs WHERE",
+    "formula": "SELECT col, AGG(col)\nFROM tabla\nWHERE condición_filas\nGROUP BY col\nHAVING condición_sobre_agregado;",
+    "ejemplo": "SELECT region, COUNT(*) AS clientes\nFROM clientes\nWHERE activo = 1          -- filtra antes de agrupar\nGROUP BY region\nHAVING COUNT(*) > 50;     -- filtra después de agrupar",
+    "descripcion": "WHERE filtra filas individuales antes de la agregación. HAVING filtra grupos después de la agregación. Nunca uses HAVING para condiciones que no involucren funciones de agregación."
+  },
+  {
+    "nombre": "Alias de columna en ORDER BY",
+    "formula": "SELECT expresión AS alias\nFROM tabla\nORDER BY alias;  -- o por número de columna",
+    "ejemplo": "SELECT region, SUM(monto) AS total_ventas\nFROM ventas\nGROUP BY region\nORDER BY total_ventas DESC\nLIMIT 5;",
+    "descripcion": "En la mayoría de los motores puedes ordenar por el alias definido en SELECT (o por número de posición). No puedes usar el alias en WHERE o HAVING, solo en ORDER BY."
+  }
+]
