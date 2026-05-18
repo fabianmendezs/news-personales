@@ -9,6 +9,8 @@ import feedparser
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 
 load_dotenv()
 
@@ -171,17 +173,14 @@ def update_history(fecha_str: str, noticias: dict, tips: list) -> None:
 # ─── ENVÍO ────────────────────────────────────────────────────────────────────
 
 def send_email(html_body: str, fecha_str: str) -> None:
-    msg = MIMEMultipart("alternative")
-    msg["From"]    = REMITENTE
-    msg["To"]      = DESTINATARIO
-    msg["Subject"] = f"🗞 News Personales — {fecha_str}"
-    msg.attach(MIMEText(html_body, "html", "utf-8"))
-
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as smtp:
-        smtp.ehlo()
-        smtp.starttls()
-        smtp.login(SMTP_USER, SMTP_PASS)
-        smtp.sendmail(SMTP_USER, DESTINATARIO, msg.as_string())
+    message = Mail(
+        from_email=SMTP_USER,
+        to_emails=DESTINATARIO,
+        subject=f"🗞 News Personales — {fecha_str}",
+        html_content=html_body
+    )
+    sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
+    sg.send(message)
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
