@@ -127,9 +127,13 @@ def render_section(fecha_str: str, noticias: dict, is_open: bool = False,
 def build_email(fecha_str: str, noticias: dict, tips: list) -> str:
     section = render_section(fecha_str, noticias, is_open=True, tips=tips)
     return (
-        '<!DOCTYPE html><html><head><meta charset="utf-8"></head>'
-        '<body style="font-family:Segoe UI,Arial,sans-serif;background:#f1f5f9;padding:20px;margin:0">'
-        '<div style="max-width:600px;margin:auto">'
+        '<!DOCTYPE html><html><head>'
+        '<meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+        '<style>@media(max-width:600px){body{padding:12px!important}.wrap{padding:0 4px!important}}</style>'
+        '</head>'
+        '<body style="font-family:Segoe UI,Arial,sans-serif;background:#f1f5f9;padding:20px;margin:0;font-size:14px">'
+        '<div class="wrap" style="max-width:600px;width:100%;margin:auto;box-sizing:border-box">'
         '<h2 style="color:#0f172a;margin-bottom:16px">🗞 News Personales</h2>'
         f'{section}'
         f'<p style="font-size:11px;color:#94a3b8;margin-top:16px">'
@@ -140,14 +144,18 @@ def build_email(fecha_str: str, noticias: dict, tips: list) -> str:
 # ─── HISTORIAL ────────────────────────────────────────────────────────────────
 
 HISTORY_SHELL = (
-    '<!DOCTYPE html><html><head><meta charset="utf-8"><title>News Personales</title>'
+    '<!DOCTYPE html><html><head>'
+    '<meta charset="utf-8">'
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0">'
+    '<title>News Personales</title>'
     '<style>'
-    'body{font-family:Segoe UI,Arial,sans-serif;background:#f1f5f9;padding:24px;margin:0}'
-    '.wrap{max-width:720px;margin:auto}'
+    'body{font-family:Segoe UI,Arial,sans-serif;background:#f1f5f9;padding:24px;margin:0;font-size:14px}'
+    '.wrap{max-width:720px;width:100%;margin:auto;box-sizing:border-box}'
     'h1{color:#0f172a;margin-bottom:20px}'
     'a{color:#3b82f6;text-decoration:none} a:hover{text-decoration:underline}'
     'ul{line-height:1.9}'
     'details>summary{list-style:none} details>summary::-webkit-details-marker{display:none}'
+    '@media(max-width:600px){body{padding:12px}.wrap{padding:0 4px}}'
     '</style></head>'
     '<body><div class="wrap">'
     '<h1>🗞 News Personales</h1>'
@@ -166,7 +174,7 @@ def update_history(fecha_str: str, noticias: dict, tips: list) -> None:
 
     section = render_section(fecha_str, noticias, tips=tips)
     HISTORY_FILE.write_text(
-        html.replace(MARKER, section + "\n" + MARKER, 1),
+        html.replace(MARKER, MARKER + "\n" + section, 1),
         encoding="utf-8"
     )
 
