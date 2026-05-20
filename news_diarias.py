@@ -1,7 +1,7 @@
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
 
-import os, json
+import os, json, urllib.request
 from pathlib import Path
 from datetime import datetime, date
 from dotenv import load_dotenv
@@ -49,7 +49,10 @@ def fetch_interest(feeds: list, max_items: int) -> list:
     items = []
     for url in feeds:
         try:
-            feed = feedparser.parse(url, request_headers={"User-Agent": "Mozilla/5.0"})
+            req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=10) as resp:
+                raw = resp.read()
+            feed = feedparser.parse(raw)
             for e in feed.entries[:max_items]:
                 pub = ""
                 if getattr(e, "published_parsed", None):
