@@ -6,11 +6,8 @@ from pathlib import Path
 from datetime import datetime, date
 from dotenv import load_dotenv
 import feedparser
-import smtplib
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
+from sendgrid.helpers.mail import Mail, Email, Header
 
 load_dotenv()
 
@@ -144,6 +141,24 @@ def build_email(fecha_str: str, noticias: dict, tips: list) -> str:
         '</div></body></html>'
     )
 
+def build_plain_text(fecha_str: str, noticias: dict, tips: list) -> str:
+    lines = [f"News Personales — {fecha_str}", "=" * 44, ""]
+    for topic, items in noticias.items():
+        if not items:
+            continue
+        lines.append(topic)
+        for it in items:
+            pub = f" ({it['pub']})" if it["pub"] else ""
+            lines.append(f"  * {it['title']}{pub}")
+            lines.append(f"    {it['link']}")
+        lines.append("")
+    for titulo, tip in tips:
+        lines.append(titulo)
+        lines.append(f"  {tip['nombre']}: {tip['descripcion']}")
+        lines.append("")
+    lines.append(f"Generado el {datetime.now().strftime('%d/%m/%Y %H:%M')}")
+    return "\n".join(lines)
+
 # ─── HISTORIAL ────────────────────────────────────────────────────────────────
 
 HISTORY_SHELL = (
@@ -183,15 +198,18 @@ def update_history(fecha_str: str, noticias: dict, tips: list) -> None:
 
 # ─── ENVÍO ────────────────────────────────────────────────────────────────────
 
-def send_email(html_body: str, fecha_str: str) -> None:
-    message = Mail(
-        from_email=SMTP_USER,
+def send_email(html_body: str, plain_body: str, fecha_str: str) -> None:
+    mensaje = Mail(
+        from_email=Email("noreply@frmendez.com", "News Personales"),
         to_emails=DESTINATARIO,
-        subject=f"🗞 News Personales — {fecha_str}",
-        html_content=html_body
+        subject=f"[News Personales] {fecha_str}",
+        html_content=html_body,
+        plain_text_content=plain_body,
     )
+    mensaje.header = Header("List-Unsubscribe", "<mailto:unsubscribe@frmendez.com>")
+    mensaje.header = Header("Precedence", "bulk")
     sg = SendGridAPIClient(os.getenv("SENDGRID_API_KEY"))
-    sg.send(message)
+    sg.send(mensaje)
 
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
@@ -219,7 +237,7 @@ def main():
         print(f"  {titulo}: {tip['nombre']}")
 
     update_history(fecha_str, noticias, tips)
-    send_email(build_email(fecha_str, noticias, tips), fecha_str)
+    send_email(build_email(fecha_str, noticias, tips), build_plain_text(fecha_str, noticias, tips), fecha_str)
 
     total = sum(len(v) for v in noticias.values())
     print(f"\n  ✓ {total} noticias enviadas a {DESTINATARIO}")

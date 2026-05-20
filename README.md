@@ -1,14 +1,15 @@
 # News Personales — Daily Email Digest
 
-Envía un email diario con las noticias del día según tus intereses, obtenidas desde feeds RSS confiables. Acumula el historial de noticias en un archivo HTML local consultable por fecha.
+Envía un email diario con las noticias del día según tus intereses, obtenidas desde feeds RSS. Incluye un tip rotativo de DAX, Python y SQL. Acumula el historial en `news_history.html` con el día más reciente primero.
 
 ## Cómo funciona
 
 1. Lee `interests.json` con los temas de interés y sus feeds RSS
-2. Obtiene las últimas noticias de cada feed
-3. Genera un email HTML con los títulos y links del día
-4. Guarda el día en `news_history.html` (secciones colapsables por fecha)
-5. Envía el email vía Gmail SMTP
+2. Obtiene las últimas noticias de cada feed (timeout 10 s; si un feed falla, se omite y continúa)
+3. Selecciona un tip del día de `dax_formulas.json`, `python_tips.json` y `sql_tips.json`
+4. Genera un email multipart (HTML responsive + texto plano) con títulos, links y tips del día
+5. Guarda el día en `news_history.html` (secciones colapsables, el más reciente siempre primero)
+6. Envía el email vía SendGrid desde `noreply@frmendez.com` con headers de deliverability
 
 ## Agregar nuevos intereses
 
@@ -37,6 +38,17 @@ copy .env.example .env
 # Editar .env con tus credenciales
 ```
 
+## Variables de entorno (`.env`)
+
+| Variable | Descripción |
+|----------|-------------|
+| `SENDGRID_API_KEY` | API key de SendGrid |
+| `SMTP_USER` | Email de respaldo para `DESTINATARIO` si no se define por separado |
+| `DESTINATARIO` | Email destinatario (por defecto igual a `SMTP_USER`) |
+| `MAX_ITEMS` | Noticias máximas por feed (por defecto `5`) |
+
+> El remitente está fijado en el código como `noreply@frmendez.com` (nombre visible: "News Personales"). Para cambiarlo, editar `send_email` en `news_diarias.py`.
+
 ## Ejecución
 
 ```bash
@@ -55,7 +67,26 @@ python news_diarias.py
 | Librería | Uso |
 |----------|-----|
 | `feedparser` | Lectura de feeds RSS/Atom |
+| `sendgrid` | Envío de emails vía API |
 | `python-dotenv` | Variables de entorno desde `.env` |
+
+## Deliverability (anti-spam)
+
+El código ya incluye:
+- Email multipart: HTML + texto plano en el mismo envío
+- Asunto sin emoji al inicio (`[News Personales] fecha`)
+- Header `List-Unsubscribe` apuntando a `unsubscribe@frmendez.com`
+- Header `Precedence: bulk`
+
+Para que estos cambios sean suficientes, el dominio `frmendez.com` debe tener los registros DNS activos y verificados en **SendGrid → Settings → Sender Authentication**:
+
+| Registro | Tipo | Descripción |
+|----------|------|-------------|
+| SPF | TXT | Autoriza a SendGrid a enviar desde el dominio |
+| DKIM | CNAME (×2) | Firma criptográfica de cada email |
+| DMARC | TXT en `_dmarc.frmendez.com` | Política de rechazo para emails no firmados |
+
+Sin los tres en verde en SendGrid, los cambios de código solos no son suficientes.
 
 ## Licencia
 
