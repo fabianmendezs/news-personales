@@ -1,7 +1,7 @@
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
 
-import os, json, urllib.request
+import os, json, urllib.request, shutil
 from pathlib import Path
 from datetime import datetime, date
 from dotenv import load_dotenv
@@ -239,9 +239,15 @@ def main():
     update_history(fecha_str, noticias, tips)
     send_email(build_email(fecha_str, noticias, tips), build_plain_text(fecha_str, noticias, tips), fecha_str)
 
+    backup_dir = BASE_DIR / "backups"
+    backup_dir.mkdir(exist_ok=True)
+    backup_file = backup_dir / f"news_history_{date.today().isoformat()}.html"
+    shutil.copy2(HISTORY_FILE, backup_file)
+
     total = sum(len(v) for v in noticias.values())
     print(f"\n  ✓ {total} noticias enviadas a {DESTINATARIO}")
     print(f"  ✓ Historial actualizado: news_history.html")
+    print(f"  ✓ Backup guardado: {backup_file.name}")
     print(f"{'─'*50}\n")
 
 
