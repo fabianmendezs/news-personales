@@ -10,6 +10,7 @@ Envía un email diario con las noticias del día según tus intereses, obtenidas
 4. Genera un email multipart (HTML responsive + texto plano) con títulos, links y tips del día
 5. Guarda el día en `news_history.html` (secciones colapsables, el más reciente siempre primero)
 6. Envía el email vía SendGrid desde `noreply@frmendez.com` con headers de deliverability
+7. Copia el historial a `backups/news_history_YYYY-MM-DD.html` (la carpeta se crea automáticamente; excluida de git)
 
 ## Agregar nuevos intereses
 
