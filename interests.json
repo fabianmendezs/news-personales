@@ -1,15 +1,11 @@
 {
-  "Final Fantasy XIV": [
-    "https://news.google.com/rss/search?q=%22Final+Fantasy+XIV%22&hl=en-US&gl=US&ceid=US:en",
-    "https://news.google.com/rss/search?q=ffxiv&hl=en-US&gl=US&ceid=US:en"
-  ],
-  "Power BI": [
-    "https://news.google.com/rss/search?q=%22Power+BI%22&hl=en-US&gl=US&ceid=US:en"
-  ],
   "Inteligencia Artificial": [
     "https://news.google.com/rss/search?q=inteligencia+artificial&hl=es-419&gl=CL&ceid=CL:es-419"
   ],
   "Ciencia de Datos": [
     "https://news.google.com/rss/search?q=%22ciencia+de+datos%22+OR+%22data+science%22&hl=es-419&gl=CL&ceid=CL:es-419"
+  ],
+  "Power BI": [
+    "https://news.google.com/rss/search?q=%22Power+BI%22&hl=en-US&gl=US&ceid=US:en"
   ]
 }
