@@ -43,12 +43,13 @@ copy .env.example .env
 
 | Variable | Descripción |
 |----------|-------------|
-| `SENDGRID_API_KEY` | API key de SendGrid |
-| `SMTP_USER` | Email de respaldo para `DESTINATARIO` si no se define por separado |
-| `DESTINATARIO` | Email destinatario (por defecto igual a `SMTP_USER`) |
+| `SENDGRID_API_KEY` | API key de SendGrid (Restricted Access → Mail Send → Full Access) |
+| `DESTINATARIO` | Email destinatario del digest diario |
 | `MAX_ITEMS` | Noticias máximas por feed (por defecto `5`) |
 
 > El remitente está fijado en el código como `noreply@frmendez.com` (nombre visible: "News Personales"). Para cambiarlo, editar `send_email` en `news_diarias.py`.
+
+> **Seguridad:** Usar siempre **Restricted Access** en SendGrid. Si la key se compromete, el atacante solo puede enviar emails pero no acceder a configuración ni billing.
 
 ## Ejecución
 

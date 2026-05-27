@@ -22,12 +22,7 @@ HISTORY_FILE   = BASE_DIR / "news_history.html"
 LOGS_DIR       = BASE_DIR / "logs"
 MAX_ITEMS      = int(os.getenv("MAX_ITEMS", 5))
 
-SMTP_HOST    = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT    = int(os.getenv("SMTP_PORT", 587))
-SMTP_USER    = os.getenv("SMTP_USER")
-SMTP_PASS    = os.getenv("SMTP_PASS")
-DESTINATARIO = os.getenv("DESTINATARIO", SMTP_USER)
-REMITENTE    = os.getenv("REMITENTE", f"News Personales <{SMTP_USER}>")
+DESTINATARIO = os.getenv("DESTINATARIO", "")
 
 MESES = {
     1:"enero", 2:"febrero", 3:"marzo",    4:"abril",
