@@ -259,7 +259,7 @@ def update_history(fecha_str: str, noticias: dict, tips: list, history_file: Pat
 
 # ─── ENVÍO ────────────────────────────────────────────────────────────────────
 
-def send_email(html_body: str, plain_body: str, fecha_str: str, to_email: str) -> None:
+def send_email(html_body: str, plain_body: str, fecha_str: str, to_email: str | list) -> None:
     mensaje = Mail(
         from_email=Email("noreply@frmendez.com", "News Personales"),
         to_emails=to_email,
