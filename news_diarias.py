@@ -164,7 +164,7 @@ def build_email(fecha_str: str, noticias: dict, tips: list, resumenes: dict = No
         if resumen:
             summaries_content += (
                 f'<p style="font-weight:600;margin:10px 0 2px;color:#0f172a;font-size:13px">{topic}</p>'
-                f'<p style="margin:0 0 10px;color:#334155;font-size:13px;line-height:1.6">{resumen}</p>'
+                f'<p style="margin:0 0 10px;color:#334155;font-size:13px;line-height:1.6;text-align:justify">{resumen}</p>'
             )
     ai_block = ""
     if summaries_content:
