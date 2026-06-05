@@ -13,16 +13,13 @@ load_dotenv()
 
 # ─── CONFIGURACIÓN ────────────────────────────────────────────────────────────
 
-BASE_DIR       = Path(__file__).parent
-INTERESTS_FILE = BASE_DIR / "interests.json"
-DAX_FILE       = BASE_DIR / "dax_formulas.json"
-PYTHON_FILE    = BASE_DIR / "python_tips.json"
-SQL_FILE       = BASE_DIR / "sql_tips.json"
-HISTORY_FILE   = BASE_DIR / "news_history.html"
-LOGS_DIR       = BASE_DIR / "logs"
-MAX_ITEMS      = int(os.getenv("MAX_ITEMS", 5))
-
-DESTINATARIO = os.getenv("DESTINATARIO", "")
+BASE_DIR     = Path(__file__).parent
+PROFILES_DIR = BASE_DIR / "profiles"
+DAX_FILE     = BASE_DIR / "dax_formulas.json"
+PYTHON_FILE  = BASE_DIR / "python_tips.json"
+SQL_FILE     = BASE_DIR / "sql_tips.json"
+LOGS_DIR     = BASE_DIR / "logs"
+MAX_ITEMS    = int(os.getenv("MAX_ITEMS", 5))
 
 MESES = {
     1:"enero", 2:"febrero", 3:"marzo",    4:"abril",
@@ -155,7 +152,7 @@ def render_section(fecha_str: str, noticias: dict, is_open: bool = False,
         f'</details>'
     )
 
-def build_email(fecha_str: str, noticias: dict, tips: list, resumenes: dict = None) -> str:
+def build_email(fecha_str: str, noticias: dict, tips: list, resumenes: dict = None, name: str = "") -> str:
     resumenes = resumenes or {}
 
     summaries_content = ""
@@ -186,7 +183,7 @@ def build_email(fecha_str: str, noticias: dict, tips: list, resumenes: dict = No
         '</head>'
         '<body style="font-family:Segoe UI,Arial,sans-serif;background:#f1f5f9;padding:20px;margin:0;font-size:14px">'
         '<div class="wrap" style="max-width:600px;width:100%;margin:auto;box-sizing:border-box">'
-        '<h2 style="color:#0f172a;margin-bottom:16px">🗞 News Personales</h2>'
+        f'<h2 style="color:#0f172a;margin-bottom:16px">🗞 News Personales — {name}</h2>'
         f'{ai_block}'
         f'{section}'
         f'<p style="font-size:11px;color:#94a3b8;margin-top:16px">'
@@ -194,9 +191,9 @@ def build_email(fecha_str: str, noticias: dict, tips: list, resumenes: dict = No
         '</div></body></html>'
     )
 
-def build_plain_text(fecha_str: str, noticias: dict, tips: list, resumenes: dict = None) -> str:
+def build_plain_text(fecha_str: str, noticias: dict, tips: list, resumenes: dict = None, name: str = "") -> str:
     resumenes = resumenes or {}
-    lines = [f"News Personales — {fecha_str}", "=" * 44, ""]
+    lines = [f"News Personales — {name} | {fecha_str}", "=" * 44, ""]
 
     if any(resumenes.get(t) for t in noticias):
         lines += ["RESUMEN DEL DÍA", "-" * 20, ""]
@@ -245,27 +242,27 @@ HISTORY_SHELL = (
     '</div></body></html>'
 )
 
-def update_history(fecha_str: str, noticias: dict, tips: list) -> None:
+def update_history(fecha_str: str, noticias: dict, tips: list, history_file: Path) -> None:
     LOGS_DIR.mkdir(exist_ok=True)
-    if not HISTORY_FILE.exists():
-        HISTORY_FILE.write_text(HISTORY_SHELL, encoding="utf-8")
+    if not history_file.exists():
+        history_file.write_text(HISTORY_SHELL, encoding="utf-8")
 
-    html = HISTORY_FILE.read_text(encoding="utf-8")
+    html = history_file.read_text(encoding="utf-8")
     if f"📅 {fecha_str}" in html:
         return  # ya guardado hoy
 
     section = render_section(fecha_str, noticias, tips=tips)
-    HISTORY_FILE.write_text(
+    history_file.write_text(
         html.replace(MARKER, MARKER + "\n" + section, 1),
         encoding="utf-8"
     )
 
 # ─── ENVÍO ────────────────────────────────────────────────────────────────────
 
-def send_email(html_body: str, plain_body: str, fecha_str: str) -> None:
+def send_email(html_body: str, plain_body: str, fecha_str: str, to_email: str) -> None:
     mensaje = Mail(
         from_email=Email("noreply@frmendez.com", "News Personales"),
-        to_emails=DESTINATARIO,
+        to_emails=to_email,
         subject=f"[News Personales] {fecha_str}",
         html_content=html_body,
         plain_text_content=plain_body,
@@ -278,22 +275,10 @@ def send_email(html_body: str, plain_body: str, fecha_str: str) -> None:
 # ─── MAIN ─────────────────────────────────────────────────────────────────────
 
 def main():
-    with open(INTERESTS_FILE, encoding="utf-8") as f:
-        interests = json.load(f)
-
     fecha_str = fecha_es()
     print(f"\n{'─'*50}")
     print(f"  News Personales — {fecha_str}")
     print(f"{'─'*50}")
-
-    noticias = {}
-    for topic, feeds in interests.items():
-        items = fetch_interest(feeds, MAX_ITEMS)
-        noticias[topic] = items
-        print(f"  {topic}: {len(items)} noticias")
-
-    print("  Generando resúmenes con IA...")
-    resumenes = {topic: get_ai_summary(topic, items) for topic, items in noticias.items()}
 
     tips = [
         ("💡 DAX del día",    get_tip(DAX_FILE)),
@@ -303,23 +288,55 @@ def main():
     for titulo, tip in tips:
         print(f"  {titulo}: {tip['nombre']}")
 
-    update_history(fecha_str, noticias, tips)
-    send_email(
-        build_email(fecha_str, noticias, tips, resumenes),
-        build_plain_text(fecha_str, noticias, tips, resumenes),
-        fecha_str,
+    profiles = sorted(
+        p for p in PROFILES_DIR.glob("*.json")
+        if not p.name.endswith(".example.json")
     )
+    if not profiles:
+        print("  ⚠ No se encontraron perfiles en profiles/")
+        return
 
     backup_dir = BASE_DIR / "backups"
     backup_dir.mkdir(exist_ok=True)
-    backup_file = backup_dir / f"news_history_{date.today().isoformat()}.html"
-    shutil.copy2(HISTORY_FILE, backup_file)
 
-    total = sum(len(v) for v in noticias.values())
-    print(f"\n  ✓ {total} noticias enviadas a {DESTINATARIO}")
-    print(f"  ✓ Historial actualizado: news_history.html")
-    print(f"  ✓ Backup guardado: {backup_file.name}")
-    print(f"{'─'*50}\n")
+    for profile_path in profiles:
+        with open(profile_path, encoding="utf-8") as f:
+            profile = json.load(f)
+
+        name        = profile["name"]
+        to_email    = profile["email"]
+        interests   = profile["interests"]
+        profile_id  = profile_path.stem
+        history_file = BASE_DIR / f"news_history_{profile_id}.html"
+
+        print(f"\n  [{profile_id}] {name} → {to_email}")
+
+        noticias = {}
+        for topic, feeds in interests.items():
+            items = fetch_interest(feeds, MAX_ITEMS)
+            noticias[topic] = items
+            print(f"    {topic}: {len(items)} noticias")
+
+        print(f"    Generando resúmenes con IA...")
+        resumenes = {topic: get_ai_summary(topic, items) for topic, items in noticias.items()}
+
+        update_history(fecha_str, noticias, tips, history_file)
+        send_email(
+            build_email(fecha_str, noticias, tips, resumenes, name),
+            build_plain_text(fecha_str, noticias, tips, resumenes, name),
+            fecha_str,
+            to_email,
+        )
+
+        backup_file = backup_dir / f"news_history_{profile_id}_{date.today().isoformat()}.html"
+        shutil.copy2(history_file, backup_file)
+
+        total = sum(len(v) for v in noticias.values())
+        print(f"    ✓ {total} noticias enviadas a {to_email}")
+        print(f"    ✓ Historial: news_history_{profile_id}.html")
+        print(f"    ✓ Backup: {backup_file.name}")
+
+    print(f"\n{'─'*50}\n")
 
 
 if __name__ == "__main__":

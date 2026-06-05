@@ -1,0 +1,10 @@
+{
+    "email": "tu_email@gmail.com",
+    "name": "Tu Nombre",
+    "interests": {
+        "Tema 1": [
+            "https://feed1.rss",
+            "https://feed2.rss"
+        ]
+    }
+}

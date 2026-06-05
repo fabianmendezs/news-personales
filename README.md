@@ -4,31 +4,33 @@ Envía un email diario con las noticias del día según tus intereses, obtenidas
 
 ## Cómo funciona
 
-1. Lee `interests.json` con los temas de interés y sus feeds RSS
-2. Obtiene las últimas noticias de cada feed (timeout 10 s; si un feed falla, se omite y continúa), ordenadas de más reciente a más antigua usando `published_parsed` o `updated_parsed`; noticias sin fecha van al final
+1. Lee todos los archivos `profiles/*.json` (excluye `*.example.json`); por cada perfil ejecuta los pasos siguientes
+2. Obtiene las últimas noticias de cada feed del perfil (timeout 10 s; si un feed falla, se omite y continúa), ordenadas de más reciente a más antigua usando `published_parsed` o `updated_parsed`; noticias sin fecha van al final
 3. Llama a Groq (llama-3.3-70b-versatile) para generar un resumen en español de 2-3 oraciones por temática; si la llamada falla, continúa sin resumen
-4. Selecciona un tip del día de `dax_formulas.json`, `python_tips.json` y `sql_tips.json`
-5. Genera un email multipart (HTML responsive + texto plano) con: bloque "🤖 Resumen del día" (resúmenes de todas las temáticas) seguido de los títulos, links y tips del día
-6. Guarda el día en `news_history.html` (secciones colapsables, el más reciente siempre primero; sin resúmenes de IA)
-7. Envía el email vía SendGrid desde `noreply@frmendez.com` con headers de deliverability
-8. Copia el historial a `backups/news_history_YYYY-MM-DD.html` (la carpeta se crea automáticamente; excluida de git)
+4. Selecciona un tip del día de `dax_formulas.json`, `python_tips.json` y `sql_tips.json` (compartido entre todos los perfiles)
+5. Genera un email multipart (HTML responsive + texto plano) personalizado con el nombre del perfil, bloque "🤖 Resumen del día" y la lista de noticias con links
+6. Guarda el día en `news_history_{perfil}.html` (secciones colapsables, el más reciente siempre primero; sin resúmenes de IA)
+7. Envía el email vía SendGrid desde `noreply@frmendez.com` al email del perfil
+8. Copia el historial a `backups/news_history_{perfil}_YYYY-MM-DD.html` (la carpeta se crea automáticamente; excluida de git)
 
-## Agregar nuevos intereses
+## Agregar un nuevo usuario
 
-Editar `interests.json` agregando el tema y sus feeds RSS:
+Crear un archivo `profiles/nombre.json` en el servidor (nunca en el repo — está en `.gitignore`):
 
 ```json
 {
-  "Final Fantasy XIV": [
-    "https://www.reddit.com/r/ffxiv.rss",
-    "https://na.finalfantasyxiv.com/lodestone/topics/rss/"
-  ],
-  "Python": [
-    "https://www.reddit.com/r/Python.rss",
-    "https://realpython.com/atom.xml"
-  ]
+    "email": "usuario@gmail.com",
+    "name": "Nombre",
+    "interests": {
+        "Tema 1": [
+            "https://feed1.rss",
+            "https://feed2.rss"
+        ]
+    }
 }
 ```
+
+Ver `profiles/fabian.example.json` como referencia de estructura. El script detecta automáticamente el nuevo archivo en la próxima ejecución.
 
 ## Instalación
 
@@ -46,8 +48,9 @@ copy .env.example .env
 |----------|-------------|
 | `SENDGRID_API_KEY` | API key de SendGrid (Restricted Access → Mail Send → Full Access) |
 | `GROQ_API_KEY` | API key de Groq para resúmenes de IA (opcional; si no está, se omiten los resúmenes) |
-| `DESTINATARIO` | Email destinatario del digest diario |
 | `MAX_ITEMS` | Noticias máximas por feed (por defecto `5`) |
+
+> El email de cada destinatario vive en su archivo `profiles/nombre.json`, no en `.env`.
 
 > El remitente está fijado en el código como `noreply@frmendez.com` (nombre visible: "News Personales"). Para cambiarlo, editar `send_email` en `news_diarias.py`.
 

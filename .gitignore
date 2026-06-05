@@ -5,8 +5,10 @@ logs/
 *.log
 __pycache__/
 *.py[cod]
-news_history.html
+news_history*.html
 backups/
+profiles/*.json
+!profiles/*.example.json
 .vscode/
 *.code-workspace
 .DS_Store
