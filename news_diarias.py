@@ -1,7 +1,7 @@
 import sys
 sys.stdout.reconfigure(encoding='utf-8')
 
-import os, json, urllib.request, shutil
+import os, json, time, urllib.request, shutil
 from pathlib import Path
 from datetime import datetime, date
 from dotenv import load_dotenv
@@ -46,13 +46,15 @@ def fetch_interest(feeds: list, max_items: int) -> list:
                 raw = resp.read()
             feed = feedparser.parse(raw)
             for e in feed.entries[:max_items]:
+                parsed_date = getattr(e, "published_parsed", None) or getattr(e, "updated_parsed", None)
                 pub = ""
-                if getattr(e, "published_parsed", None):
-                    pub = datetime(*e.published_parsed[:6]).strftime("%d/%m %H:%M")
+                if parsed_date:
+                    pub = datetime(*parsed_date[:6]).strftime("%d/%m %H:%M")
                 items.append({
-                    "title": e.get("title", "Sin título").strip(),
-                    "link":  e.get("link", "#"),
-                    "pub":   pub,
+                    "title":      e.get("title", "Sin título").strip(),
+                    "link":       e.get("link", "#"),
+                    "pub":        pub,
+                    "_sort_date": parsed_date,
                 })
         except Exception as ex:
             print(f"  ⚠ Feed error [{url}]: {ex}")
@@ -62,7 +64,41 @@ def fetch_interest(feeds: list, max_items: int) -> list:
         if it["link"] not in seen:
             seen.add(it["link"])
             unique.append(it)
+
+    unique.sort(key=lambda x: (
+        x["_sort_date"] is None,
+        -time.mktime(x["_sort_date"]) if x["_sort_date"] else 0,
+    ))
+    for it in unique:
+        del it["_sort_date"]
+
     return unique[:max_items]
+
+# ─── GROQ ─────────────────────────────────────────────────────────────────────
+
+def get_ai_summary(topic: str, items: list) -> str:
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key or not items:
+        return ""
+    try:
+        from groq import Groq
+        titulos = "\n".join(f"- {it['title']}" for it in items)
+        prompt = (
+            f"Se te dan los títulos de las noticias del día sobre '{topic}':\n{titulos}\n\n"
+            f"Escribe un párrafo de 2 a 3 oraciones resumiendo estas noticias en español, "
+            f"sin listas ni bullets, en tono informativo."
+        )
+        client = Groq(api_key=api_key)
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.5,
+            max_tokens=150,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as ex:
+        print(f"  ⚠ Groq error [{topic}]: {ex}")
+        return ""
 
 # ─── DAX ──────────────────────────────────────────────────────────────────────
 
@@ -119,7 +155,28 @@ def render_section(fecha_str: str, noticias: dict, is_open: bool = False,
         f'</details>'
     )
 
-def build_email(fecha_str: str, noticias: dict, tips: list) -> str:
+def build_email(fecha_str: str, noticias: dict, tips: list, resumenes: dict = None) -> str:
+    resumenes = resumenes or {}
+
+    summaries_content = ""
+    for topic in noticias:
+        resumen = resumenes.get(topic, "")
+        if resumen:
+            summaries_content += (
+                f'<p style="font-weight:600;margin:10px 0 2px;color:#0f172a;font-size:13px">{topic}</p>'
+                f'<p style="margin:0 0 10px;color:#334155;font-size:13px;line-height:1.6">{resumen}</p>'
+            )
+    ai_block = ""
+    if summaries_content:
+        ai_block = (
+            '<div style="background:#fff;border-radius:8px;padding:16px;'
+            'margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.08)">'
+            '<p style="font-weight:bold;font-size:15px;margin:0 0 10px;color:#0f172a">'
+            '🤖 Resumen del día</p>'
+            f'{summaries_content}'
+            '</div>'
+        )
+
     section = render_section(fecha_str, noticias, is_open=True, tips=tips)
     return (
         '<!DOCTYPE html><html><head>'
@@ -130,14 +187,26 @@ def build_email(fecha_str: str, noticias: dict, tips: list) -> str:
         '<body style="font-family:Segoe UI,Arial,sans-serif;background:#f1f5f9;padding:20px;margin:0;font-size:14px">'
         '<div class="wrap" style="max-width:600px;width:100%;margin:auto;box-sizing:border-box">'
         '<h2 style="color:#0f172a;margin-bottom:16px">🗞 News Personales</h2>'
+        f'{ai_block}'
         f'{section}'
         f'<p style="font-size:11px;color:#94a3b8;margin-top:16px">'
         f'Generado el {datetime.now().strftime("%d/%m/%Y %H:%M")}</p>'
         '</div></body></html>'
     )
 
-def build_plain_text(fecha_str: str, noticias: dict, tips: list) -> str:
+def build_plain_text(fecha_str: str, noticias: dict, tips: list, resumenes: dict = None) -> str:
+    resumenes = resumenes or {}
     lines = [f"News Personales — {fecha_str}", "=" * 44, ""]
+
+    if any(resumenes.get(t) for t in noticias):
+        lines += ["RESUMEN DEL DÍA", "-" * 20, ""]
+        for topic in noticias:
+            resumen = resumenes.get(topic, "")
+            if resumen:
+                lines.append(f"{topic}: {resumen}")
+                lines.append("")
+        lines.append("")
+
     for topic, items in noticias.items():
         if not items:
             continue
@@ -223,6 +292,9 @@ def main():
         noticias[topic] = items
         print(f"  {topic}: {len(items)} noticias")
 
+    print("  Generando resúmenes con IA...")
+    resumenes = {topic: get_ai_summary(topic, items) for topic, items in noticias.items()}
+
     tips = [
         ("💡 DAX del día",    get_tip(DAX_FILE)),
         ("🐍 Python del día", get_tip(PYTHON_FILE)),
@@ -232,7 +304,11 @@ def main():
         print(f"  {titulo}: {tip['nombre']}")
 
     update_history(fecha_str, noticias, tips)
-    send_email(build_email(fecha_str, noticias, tips), build_plain_text(fecha_str, noticias, tips), fecha_str)
+    send_email(
+        build_email(fecha_str, noticias, tips, resumenes),
+        build_plain_text(fecha_str, noticias, tips, resumenes),
+        fecha_str,
+    )
 
     backup_dir = BASE_DIR / "backups"
     backup_dir.mkdir(exist_ok=True)
