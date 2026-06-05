@@ -5,12 +5,13 @@ Envía un email diario con las noticias del día según tus intereses, obtenidas
 ## Cómo funciona
 
 1. Lee `interests.json` con los temas de interés y sus feeds RSS
-2. Obtiene las últimas noticias de cada feed (timeout 10 s; si un feed falla, se omite y continúa)
-3. Selecciona un tip del día de `dax_formulas.json`, `python_tips.json` y `sql_tips.json`
-4. Genera un email multipart (HTML responsive + texto plano) con títulos, links y tips del día
-5. Guarda el día en `news_history.html` (secciones colapsables, el más reciente siempre primero)
-6. Envía el email vía SendGrid desde `noreply@frmendez.com` con headers de deliverability
-7. Copia el historial a `backups/news_history_YYYY-MM-DD.html` (la carpeta se crea automáticamente; excluida de git)
+2. Obtiene las últimas noticias de cada feed (timeout 10 s; si un feed falla, se omite y continúa), ordenadas de más reciente a más antigua usando `published_parsed` o `updated_parsed`; noticias sin fecha van al final
+3. Llama a Groq (llama-3.3-70b-versatile) para generar un resumen en español de 2-3 oraciones por temática; si la llamada falla, continúa sin resumen
+4. Selecciona un tip del día de `dax_formulas.json`, `python_tips.json` y `sql_tips.json`
+5. Genera un email multipart (HTML responsive + texto plano) con: bloque "🤖 Resumen del día" (resúmenes de todas las temáticas) seguido de los títulos, links y tips del día
+6. Guarda el día en `news_history.html` (secciones colapsables, el más reciente siempre primero; sin resúmenes de IA)
+7. Envía el email vía SendGrid desde `noreply@frmendez.com` con headers de deliverability
+8. Copia el historial a `backups/news_history_YYYY-MM-DD.html` (la carpeta se crea automáticamente; excluida de git)
 
 ## Agregar nuevos intereses
 
@@ -44,6 +45,7 @@ copy .env.example .env
 | Variable | Descripción |
 |----------|-------------|
 | `SENDGRID_API_KEY` | API key de SendGrid (Restricted Access → Mail Send → Full Access) |
+| `GROQ_API_KEY` | API key de Groq para resúmenes de IA (opcional; si no está, se omiten los resúmenes) |
 | `DESTINATARIO` | Email destinatario del digest diario |
 | `MAX_ITEMS` | Noticias máximas por feed (por defecto `5`) |
 
@@ -69,6 +71,7 @@ python news_diarias.py
 | Librería | Uso |
 |----------|-----|
 | `feedparser` | Lectura de feeds RSS/Atom |
+| `groq` | Resúmenes de IA por temática (Llama 3.3 70B) |
 | `sendgrid` | Envío de emails vía API |
 | `python-dotenv` | Variables de entorno desde `.env` |
 
