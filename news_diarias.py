@@ -303,11 +303,12 @@ def main():
         with open(profile_path, encoding="utf-8") as f:
             profile = json.load(f)
 
-        name        = profile["name"]
-        to_email    = profile["email"]
-        interests   = profile["interests"]
-        profile_id  = profile_path.stem
+        name         = profile["name"]
+        to_email     = profile["email"]
+        interests    = profile["interests"]
+        profile_id   = profile_path.stem
         history_file = BASE_DIR / f"news_history_{profile_id}.html"
+        profile_tips = tips if profile.get("tips", True) else []
 
         print(f"\n  [{profile_id}] {name} → {to_email}")
 
@@ -320,10 +321,10 @@ def main():
         print(f"    Generando resúmenes con IA...")
         resumenes = {topic: get_ai_summary(topic, items) for topic, items in noticias.items()}
 
-        update_history(fecha_str, noticias, tips, history_file)
+        update_history(fecha_str, noticias, profile_tips, history_file)
         send_email(
-            build_email(fecha_str, noticias, tips, resumenes, name),
-            build_plain_text(fecha_str, noticias, tips, resumenes, name),
+            build_email(fecha_str, noticias, profile_tips, resumenes, name),
+            build_plain_text(fecha_str, noticias, profile_tips, resumenes, name),
             fecha_str,
             to_email,
         )
