@@ -19,6 +19,7 @@ DAX_FILE     = BASE_DIR / "dax_formulas.json"
 PYTHON_FILE  = BASE_DIR / "python_tips.json"
 SQL_FILE     = BASE_DIR / "sql_tips.json"
 LOGS_DIR     = BASE_DIR / "logs"
+HISTORIAL_HERRAMIENTAS_FILE = BASE_DIR / "historial_herramientas.json"
 MAX_ITEMS    = int(os.getenv("MAX_ITEMS", 5))
 
 MESES = {
@@ -73,6 +74,74 @@ def fetch_interest(feeds: list, max_items: int) -> list:
 
 # ─── GROQ ─────────────────────────────────────────────────────────────────────
 
+def load_tool_history(history_file: Path) -> list[str]:
+    if not history_file.exists():
+        history_file.write_text("[]", encoding="utf-8")
+    try:
+        data = json.loads(history_file.read_text(encoding="utf-8"))
+    except Exception:
+        history_file.write_text("[]", encoding="utf-8")
+        return []
+    if isinstance(data, list):
+        return [str(item) for item in data if isinstance(item, str)]
+    return []
+
+
+def save_tool_history(history_file: Path, tool_name: str) -> None:
+    if not tool_name:
+        return
+    history = load_tool_history(history_file)
+    if tool_name not in history:
+        history.append(tool_name)
+        history_file.write_text(json.dumps(history, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
+def get_tool_of_the_day(history_file: Path) -> tuple[str | None, str | None]:
+    api_key = os.getenv("GROQ_API_KEY")
+    if not api_key:
+        return None, None
+    try:
+        from groq import Groq
+        history = load_tool_history(history_file)
+        shown_tools = ", ".join(history) if history else "ninguna"
+        prompt = (
+            f"Estas son las herramientas ya mostradas previamente: {shown_tools}\n\n"
+            f"Elige UNA herramienta nueva del mundo del análisis de datos, ciencia de datos o inteligencia artificial "
+            f"que NO esté en esa lista. Devuelve la respuesta con este formato exacto:\n"
+            f"Nombre: <nombre de la herramienta>\n"
+            f"Qué es: <2 a 3 oraciones>\n"
+            f"Cómo se usa: <2 a 3 oraciones prácticas>\n"
+            f"Caso de uso: <2 a 3 oraciones concretas>\n\n"
+            f"Escribe todo en español, sin listas ni bullets, con un tono claro y práctico."
+        )
+        client = Groq(api_key=api_key)
+        for _ in range(2):
+            response = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0.7,
+                max_tokens=400,
+            )
+            content = response.choices[0].message.content.strip()
+            if not content:
+                continue
+            lines = [line.strip() for line in content.splitlines() if line.strip()]
+            name = None
+            for line in lines:
+                if line.lower().startswith("nombre:"):
+                    name = line.split(":", 1)[1].strip()
+                    break
+            if not name and lines:
+                name = lines[0].replace("Nombre:", "", 1).strip()
+            if name and name not in history:
+                save_tool_history(history_file, name)
+                return name, content
+        return None, None
+    except Exception as ex:
+        print(f"  ⚠ Groq tool error: {ex}")
+        return None, None
+
+
 def get_ai_summary(topic: str, items: list) -> str:
     api_key = os.getenv("GROQ_API_KEY")
     if not api_key or not items:
@@ -124,8 +193,24 @@ def render_tip_block(tip: dict, titulo: str) -> str:
 
 # ─── HTML ─────────────────────────────────────────────────────────────────────
 
+def render_tool_block(tool_name: str | None, content: str | None) -> str:
+    if not tool_name or not content:
+        return ""
+    content_html = content.replace("\n", "<br>")
+    for label in ("Qué es:", "Cómo se usa:", "Caso de uso:"):
+        content_html = content_html.replace(label, f"<strong>{label}</strong>")
+    return (
+        '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;'
+        'padding:14px 16px;margin:12px 0 10px">'
+        '<p style="font-weight:bold;margin:0 0 8px;color:#0f172a">🛠️ Herramienta del día</p>'
+        f'<p style="font-weight:600;margin:0 0 8px;color:#2563eb">{tool_name}</p>'
+        f'<div style="margin:0;color:#334155;font-size:13px;line-height:1.6">{content_html}</div>'
+        '</div>'
+    )
+
+
 def render_section(fecha_str: str, noticias: dict, is_open: bool = False,
-                   tips: list = None) -> str:
+                   tips: list = None, tool_block: str = "") -> str:
     open_attr = " open" if is_open else ""
     body = ""
     for topic, items in noticias.items():
@@ -142,6 +227,8 @@ def render_section(fecha_str: str, noticias: dict, is_open: bool = False,
             f'<p style="font-weight:bold;margin:14px 0 4px;color:#0f172a">{topic}</p>'
             f'<ul style="margin:0;padding-left:18px;line-height:1.9">{rows}</ul>'
         )
+    if tool_block:
+        body += tool_block
     for titulo, tip in (tips or []):
         body += render_tip_block(tip, titulo)
     return (
@@ -153,7 +240,8 @@ def render_section(fecha_str: str, noticias: dict, is_open: bool = False,
         f'</details>'
     )
 
-def build_email(fecha_str: str, noticias: dict, tips: list, resumenes: dict = None, name: str = "") -> str:
+def build_email(fecha_str: str, noticias: dict, tips: list, resumenes: dict = None, name: str = "",
+                tool_name: str = "", tool_content: str = "") -> str:
     resumenes = resumenes or {}
 
     summaries_content = ""
@@ -175,7 +263,13 @@ def build_email(fecha_str: str, noticias: dict, tips: list, resumenes: dict = No
             '</div>'
         )
 
-    section = render_section(fecha_str, noticias, is_open=True, tips=tips)
+    section = render_section(
+        fecha_str,
+        noticias,
+        is_open=True,
+        tips=tips,
+        tool_block=render_tool_block(tool_name, tool_content),
+    )
     return (
         '<!DOCTYPE html><html><head>'
         '<meta charset="utf-8">'
@@ -192,7 +286,8 @@ def build_email(fecha_str: str, noticias: dict, tips: list, resumenes: dict = No
         '</div></body></html>'
     )
 
-def build_plain_text(fecha_str: str, noticias: dict, tips: list, resumenes: dict = None, name: str = "") -> str:
+def build_plain_text(fecha_str: str, noticias: dict, tips: list, resumenes: dict = None, name: str = "",
+                     tool_name: str = "", tool_content: str = "") -> str:
     resumenes = resumenes or {}
     lines = [f"News Personales — {name} | {fecha_str}", "=" * 44, ""]
 
@@ -214,6 +309,9 @@ def build_plain_text(fecha_str: str, noticias: dict, tips: list, resumenes: dict
             lines.append(f"  * {it['title']}{pub}")
             lines.append(f"    {it['link']}")
         lines.append("")
+    if tool_name and tool_content:
+        lines += ["HERRAMIENTA DEL DÍA", "------------------", "", tool_name, "", tool_content, ""]
+
     for titulo, tip in tips:
         lines.append(titulo)
         lines.append(f"  {tip['nombre']}: {tip['descripcion']}")
@@ -310,6 +408,9 @@ def main():
         profile_id   = profile_path.stem
         history_file = BASE_DIR / f"news_history_{profile_id}.html"
         profile_tips = tips if profile.get("tips", True) else []
+        tool_name, tool_content = "", ""
+        if profile_tips and not tool_name and not tool_content:
+            tool_name, tool_content = get_tool_of_the_day(HISTORIAL_HERRAMIENTAS_FILE)
 
         print(f"\n  [{profile_id}] {name} → {to_email}")
 
@@ -324,8 +425,8 @@ def main():
 
         update_history(fecha_str, noticias, profile_tips, history_file)
         send_email(
-            build_email(fecha_str, noticias, profile_tips, resumenes, name),
-            build_plain_text(fecha_str, noticias, profile_tips, resumenes, name),
+            build_email(fecha_str, noticias, profile_tips, resumenes, name, tool_name, tool_content),
+            build_plain_text(fecha_str, noticias, profile_tips, resumenes, name, tool_name, tool_content),
             fecha_str,
             to_email,
         )

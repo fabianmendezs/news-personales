@@ -6,6 +6,7 @@ logs/
 __pycache__/
 *.py[cod]
 news_history*.html
+historial_herramientas.json
 backups/
 profiles/*.json
 !profiles/*.example.json
