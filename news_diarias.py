@@ -81,16 +81,17 @@ def get_ai_summary(topic: str, items: list) -> str:
         from groq import Groq
         titulos = "\n".join(f"- {it['title']}" for it in items)
         prompt = (
-            f"Se te dan los títulos de las noticias del día sobre '{topic}':\n{titulos}\n\n"
-            f"Escribe un párrafo de 2 a 3 oraciones resumiendo estas noticias en español, "
-            f"sin listas ni bullets, en tono informativo."
+            f"Estos títulos son los temas del día sobre '{topic}':\n{titulos}\n\n"
+            f"Actúa como un analista experto en {topic}. Explica el contexto, la relevancia y el fondo "
+            f"de estos temas usando tu conocimiento propio para enriquecer el análisis más allá de los títulos. "
+            f"Escribe un único párrafo de 4 a 5 oraciones en español, sin listas ni bullets, en tono analítico e informativo."
         )
         client = Groq(api_key=api_key)
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
             temperature=0.5,
-            max_tokens=150,
+            max_tokens=300,
         )
         return response.choices[0].message.content.strip()
     except Exception as ex:
