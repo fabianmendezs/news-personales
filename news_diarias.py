@@ -107,7 +107,7 @@ def get_tool_of_the_day(history_file: Path) -> tuple[str | None, str | None]:
         prompt = (
             f"Estas son las herramientas ya mostradas previamente: {shown_tools}\n\n"
             f"Elige UNA herramienta nueva del mundo del análisis de datos, ciencia de datos o inteligencia artificial "
-            f"que NO esté en esa lista. Devuelve la respuesta con este formato exacto:\n"
+            f"que NO esté en esa lista, ya sea una biblioteca o una aplicacion, pero que sean variadas según sea el tipo. Devuelve la respuesta con este formato exacto:\n"
             f"Nombre: <nombre de la herramienta>\n"
             f"Qué es: <2 a 3 oraciones>\n"
             f"Cómo se usa: <2 a 3 oraciones prácticas>\n"
